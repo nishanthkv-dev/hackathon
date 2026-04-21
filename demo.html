@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Crowd Detection — Interactive Prototype</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0A0E1A;--bg2:#0F1629;--bg3:#141E30;--bg4:#1D2B45;
+  --accent:#E63946;--cyan:#00B4D8;--green:#2ECC71;--yellow:#F4D03F;--orange:#E67E22;--purple:#9B59B6;--blue:#1D6FA5;
+  --border:#1D3557;--text:#E8EDF4;--muted:#7F8C9A;
+  --font:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex}
+
+/* SIDEBAR */
+.sidebar{width:210px;min-width:210px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:0}
+.logo-area{padding:16px;border-bottom:1px solid var(--border)}
+.logo-badge{background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:3px 8px;border-radius:3px;letter-spacing:1.5px;display:inline-block;margin-bottom:6px}
+.logo-title{font-size:12px;font-weight:600;line-height:1.4;color:var(--text)}
+.logo-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.nav-section{padding:12px 8px 0}
+.nav-label{font-size:9px;color:var(--muted);letter-spacing:2px;padding:0 8px;margin-bottom:4px;font-weight:700;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--muted);transition:all .12s;margin-bottom:2px;border:1px solid transparent}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--bg3);color:var(--text);border-color:var(--border)}
+.nav-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.nav-item.active .nav-dot{background:var(--cyan)}
+.nav-badge{margin-left:auto;background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px}
+.sidebar-footer{margin-top:auto;padding:12px 16px;border-top:1px solid var(--border)}
+.sys-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;flex-shrink:0}
+.topbar-info{flex:1}
+.topbar-title{font-size:15px;font-weight:600}
+.topbar-sub{font-size:10px;color:var(--muted);margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:10px;margin-left:auto}
+.alert-btn{background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:5px 12px;border-radius:20px;cursor:pointer;letter-spacing:.5px;border:none;font-family:var(--font);animation:pulse-red 2s infinite}
+@keyframes pulse-red{0%,100%{box-shadow:0 0 0 0 rgba(230,57,70,.4)}50%{box-shadow:0 0 0 6px rgba(230,57,70,0)}}
+.clock{font-family:var(--mono);font-size:11px;color:var(--cyan);background:var(--bg3);padding:4px 10px;border-radius:4px;border:1px solid var(--border)}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+
+/* SCREENS */
+.screen{display:none;flex:1;overflow-y:auto;overflow-x:hidden;padding:16px}
+.screen.active{display:block}
+
+/* STAT CARDS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px}
+.stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.stat-val{font-size:28px;font-weight:700;font-family:var(--mono)}
+.stat-val.c-red{color:var(--accent)}
+.stat-val.c-yellow{color:var(--yellow)}
+.stat-val.c-green{color:var(--green)}
+.stat-val.c-cyan{color:var(--cyan)}
+.stat-trend{font-size:10px;color:var(--muted);margin-top:3px}
+.stat-bar{height:3px;background:var(--border);border-radius:2px;margin-top:10px}
+.stat-bar-fill{height:100%;border-radius:2px}
+
+/* PANELS */
+.panel{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px}
+.panel-header{font-size:12px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.panel-dot{width:6px;height:6px;border-radius:50%}
+
+/* CAM GRID */
+.cam-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cam-feed{border-radius:6px;overflow:hidden;position:relative;cursor:pointer;border:2px solid transparent;transition:.15s}
+.cam-feed:hover{border-color:var(--cyan)}
+.cam-feed.alert-cam{border-color:var(--accent)}
+.cam-feed canvas{display:block;width:100%;height:auto}
+.cam-label{position:absolute;bottom:5px;left:5px;background:rgba(0,0,0,.85);color:#fff;font-size:9px;padding:2px 6px;border-radius:3px;font-family:var(--mono)}
+.cam-badge{position:absolute;top:5px;right:5px;background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;animation:blink 1s infinite}
+.cam-density{position:absolute;top:5px;left:5px;font-size:9px;font-family:var(--mono);font-weight:600;padding:2px 7px;border-radius:3px;color:#fff}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* DASHBOARD LAYOUT */
+.dash-cols{display:grid;grid-template-columns:3fr 2fr;gap:12px}
+.right-col{display:flex;flex-direction:column;gap:12px}
+
+/* ALERT FEED */
+.alert-feed{display:flex;flex-direction:column;gap:5px;max-height:200px;overflow-y:auto}
+.alert-item{background:var(--bg2);border-radius:5px;padding:8px 10px;border-left:3px solid;cursor:pointer;transition:.12s}
+.alert-item:hover{background:var(--bg4)}
+.alert-item.high{border-color:var(--accent)}
+.alert-item.medium{border-color:var(--yellow)}
+.alert-item.low{border-color:var(--green)}
+.alert-row{display:flex;align-items:center;gap:6px;margin-bottom:2px}
+.sev-tag{font-size:8px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:.5px}
+.sev-tag.high{background:rgba(230,57,70,.18);color:var(--accent)}
+.sev-tag.medium{background:rgba(244,208,63,.18);color:var(--yellow)}
+.sev-tag.low{background:rgba(46,204,113,.18);color:var(--green)}
+.alert-time{font-size:9px;color:var(--muted);font-family:var(--mono);margin-left:auto}
+.alert-msg{font-size:11px;color:var(--text)}
+.alert-loc{font-size:9px;color:var(--muted);margin-top:1px}
+
+/* ZONE BARS */
+.zone-row{margin-bottom:8px}
+.zone-meta{display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px}
+.zone-bar{height:5px;background:var(--border);border-radius:3px}
+.zone-fill{height:100%;border-radius:3px;transition:width .6s}
+
+/* ALERTS SCREEN */
+.filter-row{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.filter-btn{font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:.12s;font-family:var(--font)}
+.filter-btn:hover,.filter-btn.active{background:var(--bg3);color:var(--text);border-color:var(--cyan)}
+.alert-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;cursor:pointer;transition:.12s;display:flex;gap:12px;margin-bottom:8px}
+.alert-card:hover{border-color:var(--cyan);background:var(--bg4)}
+.alert-sev-bar{width:4px;border-radius:2px;flex-shrink:0}
+.alert-card-body{flex:1}
+.alert-card-title{font-size:13px;font-weight:600;margin-bottom:3px}
+.alert-card-meta{font-size:10px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+.alert-card-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;min-width:80px}
+.btn-xs{font-size:10px;padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:.12s;font-family:var(--font)}
+.btn-xs:hover{background:var(--bg4);color:var(--text)}
+.btn-xs.danger{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* ANALYTICS */
+.analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.chart-block{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px}
+.chart-label{font-size:12px;font-weight:600;margin-bottom:12px}
+.bar-chart{display:flex;align-items:flex-end;gap:3px;height:90px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center}
+.bar-fill{width:100%;border-radius:2px 2px 0 0;transition:.4s}
+.bar-lbl{font-size:8px;color:var(--muted);margin-top:3px}
+.bar-num{font-size:8px;color:var(--text);font-family:var(--mono);margin-bottom:2px}
+.pie-row{display:flex;align-items:center;gap:14px}
+.pie-legend-item{display:flex;align-items:center;gap:5px;font-size:10px;margin-bottom:5px}
+.pie-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cam-perf-row{display:flex;justify-content:space-between;font-size:10px;margin-bottom:4px}
+.cam-perf-bar{height:4px;background:var(--border);border-radius:2px;margin-bottom:8px}
+.cam-perf-fill{height:100%;border-radius:2px;background:var(--cyan)}
+
+/* HEATMAP SCREEN */
+.heatmap-container{position:relative;border-radius:8px;overflow:hidden;background:#070b14;margin-bottom:10px}
+.heatmap-container canvas{display:block;width:100%;height:auto}
+.heatmap-legend{display:flex;align-items:center;gap:6px;margin-bottom:12px}
+.h-bar{flex:1;height:6px;border-radius:3px;background:linear-gradient(to right,#0044ff44,#00cc6644,#ffcc0099,#ff000088)}
+.h-lbl{font-size:9px;color:var(--muted)}
+.zone-card-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.zone-card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px;border-left:3px solid}
+.zone-card-name{font-size:9px;color:var(--muted);margin-bottom:3px}
+.zone-card-val{font-size:20px;font-weight:700;font-family:var(--mono)}
+.zone-card-status{font-size:9px;font-weight:700;letter-spacing:.5px;margin-top:2px}
+
+/* SETTINGS */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.settings-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:16px}
+.settings-title{font-size:12px;font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.thresh-row{margin-bottom:12px}
+.thresh-meta{display:flex;justify-content:space-between;font-size:10px;margin-bottom:4px}
+.thresh-meta .val{color:var(--cyan);font-family:var(--mono);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--cyan);height:3px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.toggle-label{font-size:12px}
+.toggle-sub{font-size:10px;color:var(--muted);margin-top:1px}
+.toggle{width:36px;height:20px;background:var(--border);border-radius:10px;cursor:pointer;position:relative;transition:.2s;flex-shrink:0}
+.toggle.on{background:var(--green)}
+.toggle::after{content:'';position:absolute;width:14px;height:14px;background:#fff;border-radius:50%;top:3px;left:3px;transition:.2s}
+.toggle.on::after{left:19px}
+.cam-setting-row{display:flex;align-items:center;justify-content:space-between;padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid var(--border)}
+.online-pill{font-size:9px;font-weight:700;color:var(--green);background:rgba(46,204,113,.15);padding:2px 7px;border-radius:10px}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;width:420px;max-width:92vw}
+.modal-alert-header{background:rgba(230,57,70,.1);border:1px solid rgba(230,57,70,.3);border-radius:6px;padding:12px;margin-bottom:14px}
+.modal-sev{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.modal-sev-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:blink 1s infinite}
+.modal-sev-text{font-size:9px;font-weight:700;color:var(--accent);letter-spacing:1px}
+.modal-title{font-size:15px;font-weight:700;margin-bottom:2px}
+.modal-cam{font-size:11px;color:var(--muted)}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.info-key{font-size:11px;color:var(--muted)}
+.info-val{font-size:11px;font-family:var(--mono)}
+.modal-actions{display:flex;gap:8px;margin-top:14px}
+.btn{font-size:12px;padding:8px 16px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;transition:.12s;font-family:var(--font);font-weight:500}
+.btn:hover{background:var(--bg3)}
+.btn.danger{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.danger:hover{opacity:.85}
+.btn.success-btn{background:var(--green);border-color:var(--green);color:#fff}
+.btn.success-btn:hover{opacity:.85}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo-area">
+    <div class="logo-badge">AI GUARD</div>
+    <div class="logo-title">Crowd Detection<br>Control Center</div>
+    <div class="logo-sub">v2.0 — Production</div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Monitor</div>
+    <div class="nav-item active" onclick="go('dashboard',this)"><div class="nav-dot"></div>Dashboard</div>
+    <div class="nav-item" onclick="go('cameras',this)"><div class="nav-dot"></div>Live Cameras<div class="nav-badge" id="nb-cam">2</div></div>
+    <div class="nav-item" onclick="go('alerts',this)"><div class="nav-dot"></div>Alerts<div class="nav-badge" id="nb-alert">3</div></div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Analyse</div>
+    <div class="nav-item" onclick="go('analytics',this)"><div class="nav-dot"></div>Analytics</div>
+    <div class="nav-item" onclick="go('heatmap',this)"><div class="nav-dot"></div>Heatmap</div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">System</div>
+    <div class="nav-item" onclick="go('settings',this)"><div class="nav-dot"></div>Settings</div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="sys-status"><div class="live-dot"></div>System Online • 4 feeds</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-info">
+      <div class="topbar-title" id="tb-title">Dashboard Overview</div>
+      <div class="topbar-sub" id="tb-sub">Real-time crowd monitoring</div>
+    </div>
+    <div class="topbar-right">
+      <button class="alert-btn" onclick="openModal()">🚨 HIGH ALERT ACTIVE</button>
+      <div class="clock" id="clock">00:00:00</div>
+      <div class="avatar">OP</div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="screen active" id="screen-dashboard">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Persons Detected</div>
+        <div class="stat-val c-cyan" id="s-persons">247</div>
+        <div class="stat-trend">Across all zones</div>
+        <div class="stat-bar"><div class="stat-bar-fill" style="width:62%;background:var(--cyan)"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">High Density Zones</div>
+        <div class="stat-val c-yellow">2</div>
+        <div class="stat-trend">Threshold exceeded</div>
+        <div class="stat-bar"><div class="stat-bar-fill" style="width:40%;background:var(--yellow)"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Alerts</div>
+        <div class="stat-val c-red">3</div>
+        <div class="stat-trend">1 HIGH • 2 MEDIUM</div>
+        <div class="stat-bar"><div class="stat-bar-fill" style="width:30%;background:var(--accent)"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Model Accuracy</div>
+        <div class="stat-val c-green">96.4%</div>
+        <div class="stat-trend">YOLOv8 confidence</div>
+        <div class="stat-bar"><div class="stat-bar-fill" style="width:96%;background:var(--green)"></div></div>
+      </div>
+    </div>
+    <div class="dash-cols">
+      <div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-dot" style="background:var(--cyan)"></div>Live Camera Feeds</div>
+          <div class="cam-grid" id="cam-dash"></div>
+        </div>
+      </div>
+      <div class="right-col">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-dot" style="background:var(--accent)"></div>Recent Alerts</div>
+          <div class="alert-feed" id="feed-dash"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-dot" style="background:var(--yellow)"></div>Zone Density</div>
+          <div id="zones-dash"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CAMERAS -->
+  <div class="screen" id="screen-cameras">
+    <div class="panel">
+      <div class="panel-header"><div class="panel-dot" style="background:var(--cyan)"></div>All Cameras — Live Detection</div>
+      <div class="cam-grid" id="cam-full"></div>
+    </div>
+  </div>
+
+  <!-- ALERTS -->
+  <div class="screen" id="screen-alerts">
+    <div class="filter-row" id="filter-row">
+      <button class="filter-btn active" onclick="filterAl('all',this)">All Alerts</button>
+      <button class="filter-btn" onclick="filterAl('high',this)">🔴 HIGH</button>
+      <button class="filter-btn" onclick="filterAl('medium',this)">🟡 MEDIUM</button>
+      <button class="filter-btn" onclick="filterAl('low',this)">🟢 LOW</button>
+    </div>
+    <div id="alerts-list"></div>
+  </div>
+
+  <!-- ANALYTICS -->
+  <div class="screen" id="screen-analytics">
+    <div class="analytics-grid">
+      <div class="chart-block">
+        <div class="chart-label">Hourly Crowd Count</div>
+        <div class="bar-chart" id="bar-chart"></div>
+      </div>
+      <div class="chart-block">
+        <div class="chart-label">Alert Type Distribution</div>
+        <div class="pie-row">
+          <canvas id="pie-c" width="100" height="100"></canvas>
+          <div id="pie-legend"></div>
+        </div>
+      </div>
+      <div class="chart-block">
+        <div class="chart-label">Density Trend — Last 30 Min</div>
+        <svg id="line-svg" viewBox="0 0 300 80" style="width:100%;height:80px"></svg>
+      </div>
+      <div class="chart-block">
+        <div class="chart-label">Camera Detection Performance</div>
+        <div id="cam-perf"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEATMAP -->
+  <div class="screen" id="screen-heatmap">
+    <div class="panel">
+      <div class="panel-header"><div class="panel-dot" style="background:var(--orange)"></div>Station Floor Heatmap — Crowd Density</div>
+      <div class="heatmap-container">
+        <canvas id="heatmap-c" width="800" height="340"></canvas>
+      </div>
+      <div class="heatmap-legend">
+        <span class="h-lbl">Low density</span>
+        <div class="h-bar"></div>
+        <span class="h-lbl">Critical density</span>
+      </div>
+      <div class="zone-card-row" id="zone-cards"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="screen" id="screen-settings">
+    <div class="settings-grid">
+      <div class="settings-card">
+        <div class="settings-title">Detection Thresholds</div>
+        <div class="thresh-row">
+          <div class="thresh-meta"><span style="color:var(--muted)">Max persons / zone</span><span class="val" id="v1">50</span></div>
+          <input type="range" min="10" max="150" value="50" oninput="document.getElementById('v1').textContent=this.value">
+        </div>
+        <div class="thresh-row">
+          <div class="thresh-meta"><span style="color:var(--muted)">Motion spike threshold (px/frame)</span><span class="val" id="v2">30</span></div>
+          <input type="range" min="5" max="100" value="30" oninput="document.getElementById('v2').textContent=this.value">
+        </div>
+        <div class="thresh-row">
+          <div class="thresh-meta"><span style="color:var(--muted)">Anomaly confidence cutoff</span><span class="val" id="v3">0.70</span></div>
+          <input type="range" min="1" max="10" value="7" oninput="document.getElementById('v3').textContent=(this.value/10).toFixed(2)">
+        </div>
+        <div class="thresh-row">
+          <div class="thresh-meta"><span style="color:var(--muted)">Frame analysis rate (fps)</span><span class="val" id="v4">30</span></div>
+          <input type="range" min="5" max="60" value="30" oninput="document.getElementById('v4').textContent=this.value">
+        </div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-title">Alert Channels</div>
+        <div class="toggle-row">
+          <div><div class="toggle-label">Police SMS Alerts</div><div class="toggle-sub">Send SMS on HIGH severity</div></div>
+          <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="toggle-row">
+          <div><div class="toggle-label">Dashboard Notifications</div><div class="toggle-sub">Audio + visual alert</div></div>
+          <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="toggle-row">
+          <div><div class="toggle-label">Daily Email Reports</div><div class="toggle-sub">Auto-generated incident log</div></div>
+          <div class="toggle" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="toggle-row">
+          <div><div class="toggle-label">Auto Emergency Dispatch</div><div class="toggle-sub">Critical only — notifies services</div></div>
+          <div class="toggle" onclick="this.classList.toggle('on')"></div>
+        </div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-title">AI Model Configuration</div>
+        <div class="toggle-row" style="margin-bottom:8px">
+          <div class="toggle-label" style="color:var(--muted)">Model</div>
+          <div style="font-size:11px;color:var(--cyan);font-family:var(--mono)">YOLOv8-x</div>
+        </div>
+        <div class="toggle-row" style="margin-bottom:8px">
+          <div class="toggle-label" style="color:var(--muted)">Inference Device</div>
+          <div style="font-size:11px;color:var(--cyan);font-family:var(--mono)">CUDA / GPU</div>
+        </div>
+        <div class="toggle-row" style="margin-bottom:16px">
+          <div class="toggle-label" style="color:var(--muted)">Anomaly Model</div>
+          <div style="font-size:11px;color:var(--cyan);font-family:var(--mono)">AutoEncoder v3</div>
+        </div>
+        <div class="thresh-row">
+          <div class="thresh-meta"><span style="color:var(--muted)">Min detection confidence</span><span class="val" id="v5">0.65</span></div>
+          <input type="range" min="30" max="95" value="65" oninput="document.getElementById('v5').textContent=(this.value/100).toFixed(2)">
+        </div>
+        <div class="thresh-row">
+          <div class="thresh-meta"><span style="color:var(--muted)">NMS IoU threshold</span><span class="val" id="v6">0.45</span></div>
+          <input type="range" min="10" max="80" value="45" oninput="document.getElementById('v6').textContent=(this.value/100).toFixed(2)">
+        </div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-title">Camera Management</div>
+        <div id="cam-settings"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-alert-header">
+      <div class="modal-sev"><div class="modal-sev-dot"></div><div class="modal-sev-text">HIGH SEVERITY — IMMEDIATE ACTION REQUIRED</div></div>
+      <div class="modal-title">Stampede Pattern Detected</div>
+      <div class="modal-cam">CAM-02 • Platform Entry Gate 3 • Zone B</div>
+    </div>
+    <div class="info-row"><span class="info-key">Persons in zone</span><span class="info-val" style="color:var(--accent)">187 persons</span></div>
+    <div class="info-row"><span class="info-key">Density level</span><span class="info-val" style="color:var(--accent)">CRITICAL — 3.7× threshold</span></div>
+    <div class="info-row"><span class="info-key">Avg movement speed</span><span class="info-val" style="color:var(--yellow)">82 px/frame ↑ surge</span></div>
+    <div class="info-row"><span class="info-key">Anomaly confidence</span><span class="info-val" style="color:var(--accent)">0.94 / 1.00</span></div>
+    <div class="info-row"><span class="info-key">Pattern type</span><span class="info-val">Stampede / mass panic</span></div>
+    <div class="info-row"><span class="info-key">Timestamp</span><span class="info-val" id="modal-ts">--:--:--</span></div>
+    <div class="modal-actions">
+      <button class="btn danger" onclick="closeModal()">Dispatch Police</button>
+      <button class="btn success-btn" onclick="closeModal()">Mark Resolved</button>
+      <button class="btn" onclick="closeModal()">Dismiss</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CAMS=[
+  {id:'CAM-01',name:'Main Entrance',density:112,alert:false},
+  {id:'CAM-02',name:'Platform Gate 3',density:187,alert:true},
+  {id:'CAM-03',name:'Concourse West',density:44,alert:false},
+  {id:'CAM-04',name:'Exit Corridor',density:31,alert:true},
+];
+const ALERTS=[
+  {sev:'high',msg:'Stampede pattern detected',loc:'Zone B — Gate 3',time:'14:32:18',cam:'CAM-02',persons:187,score:'0.94'},
+  {sev:'medium',msg:'High crowd density breach',loc:'Zone A — Main Entry',time:'14:28:45',cam:'CAM-01',persons:112,score:'0.76'},
+  {sev:'medium',msg:'Sudden movement spike',loc:'Zone D — Exit Corridor',time:'14:25:11',cam:'CAM-04',persons:78,score:'0.68'},
+  {sev:'low',msg:'Density approaching threshold',loc:'Zone C — Concourse',time:'14:20:03',cam:'CAM-03',persons:44,score:'0.45'},
+  {sev:'low',msg:'Motion irregularity noted',loc:'Zone A — Main Entry',time:'14:15:22',cam:'CAM-01',persons:38,score:'0.38'},
+];
+const ZONES=[
+  {name:'Zone A — Main Entry',count:112,max:150,color:'#F4D03F'},
+  {name:'Zone B — Gate 3',count:187,max:150,color:'#E63946'},
+  {name:'Zone C — Concourse',count:44,max:150,color:'#2ECC71'},
+  {name:'Zone D — Exit Corridor',count:31,max:150,color:'#2ECC71'},
+];
+const TB={dashboard:['Dashboard Overview','Real-time crowd monitoring'],cameras:['Live Camera Feeds','All CCTV feeds active'],alerts:['Alert Management','Active incident alerts'],analytics:['Analytics & Reports','Pattern analysis'],heatmap:['Zone Density Heatmap','Spatial crowd visualization'],settings:['System Settings','Configure detection parameters']};
+
+function go(id,el){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  el.classList.add('active');
+  if(TB[id]){document.getElementById('tb-title').textContent=TB[id][0];document.getElementById('tb-sub').textContent=TB[id][1];}
+  if(id==='analytics')renderAnalytics();
+  if(id==='heatmap')renderHeatmap();
+  if(id==='settings')renderCamSettings();
+}
+
+function openModal(){document.getElementById('modal-overlay').classList.add('open');document.getElementById('modal-ts').textContent=new Date().toLocaleTimeString();}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
+
+// Clock
+setInterval(()=>{document.getElementById('clock').textContent=new Date().toLocaleTimeString();},1000);
+
+// Camera canvas animation
+const animTicks={};
+function drawCamFrame(canvas,cam){
+  const ctx=canvas.getContext('2d');
+  const w=canvas.width,h=canvas.height;
+  const t=animTicks[cam.id]=(animTicks[cam.id]||0)+1;
+  ctx.fillStyle='#060a14';ctx.fillRect(0,0,w,h);
+  for(let y=0;y<h;y+=5){ctx.fillStyle='rgba(0,0,0,.12)';ctx.fillRect(0,y,w,1);}
+  ctx.strokeStyle='rgba(0,180,216,0.07)';ctx.lineWidth=0.5;
+  for(let x=0;x<w;x+=24){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+  for(let y=0;y<h;y+=24){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+  const seed=cam.id.charCodeAt(4);
+  const n=Math.min(cam.density,18);
+  for(let i=0;i<n;i++){
+    const bx=((seed*31+i*67)%100)/100*w*0.78+w*0.11;
+    const by=((seed*19+i*43)%100)/100*h*0.65+h*0.18;
+    const wx=Math.sin(t*0.06+i)*1.8;
+    const wy=Math.cos(t*0.05+i*1.2)*1.4;
+    const col=cam.alert?'rgba(230,57,70,0.9)':'rgba(0,180,216,0.9)';
+    ctx.beginPath();ctx.arc(bx+wx,by+wy+5,3.5,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
+    ctx.beginPath();ctx.arc(bx+wx,by+wy-4,2.5,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=cam.alert?'rgba(230,57,70,0.45)':'rgba(0,180,216,0.4)';
+    ctx.lineWidth=0.7;ctx.strokeRect(bx+wx-6,by+wy-9,12,20);
+  }
+  if(cam.alert){
+    const g=ctx.createRadialGradient(w/2,h*.6,5,w/2,h*.6,w/2.2);
+    g.addColorStop(0,'rgba(230,57,70,0.22)');g.addColorStop(1,'rgba(230,57,70,0)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+  }
+  requestAnimationFrame(()=>drawCamFrame(canvas,cam));
+}
+
+function makeCamEl(cam,big){
+  const wrap=document.createElement('div');
+  wrap.className='cam-feed'+(cam.alert?' alert-cam':'');
+  wrap.onclick=()=>openModal();
+  const c=document.createElement('canvas');
+  c.width=big?360:240;c.height=big?200:135;
+  wrap.appendChild(c);
+  const lbl=document.createElement('div');lbl.className='cam-label';lbl.textContent=cam.id+' • '+cam.name;wrap.appendChild(lbl);
+  const den=document.createElement('div');den.className='cam-density';
+  den.style.background=cam.alert?'rgba(230,57,70,.85)':'rgba(0,180,216,.8)';
+  den.textContent=cam.density+' persons';wrap.appendChild(den);
+  if(cam.alert){const b=document.createElement('div');b.className='cam-badge';b.textContent='ALERT';wrap.appendChild(b);}
+  drawCamFrame(c,cam);
+  return wrap;
+}
+
+// Dashboard cams
+const camDash=document.getElementById('cam-dash');
+CAMS.forEach(c=>camDash.appendChild(makeCamEl(c,false)));
+
+// Full cams
+const camFull=document.getElementById('cam-full');
+CAMS.forEach(c=>camFull.appendChild(makeCamEl(c,true)));
+
+// Dashboard alert feed
+function buildFeed(el){
+  el.innerHTML='';
+  ALERTS.slice(0,4).forEach(a=>{
+    const d=document.createElement('div');
+    d.className='alert-item '+a.sev;d.onclick=()=>openModal();
+    d.innerHTML=`<div class="alert-row"><span class="sev-tag ${a.sev}">${a.sev.toUpperCase()}</span><span class="alert-time">${a.time}</span></div><div class="alert-msg">${a.msg}</div><div class="alert-loc">${a.loc}</div>`;
+    el.appendChild(d);
+  });
+}
+buildFeed(document.getElementById('feed-dash'));
+
+// Dashboard zones
+const zonesDash=document.getElementById('zones-dash');
+ZONES.forEach(z=>{
+  const pct=Math.min((z.count/z.max)*100,100);
+  zonesDash.innerHTML+=`<div class="zone-row"><div class="zone-meta"><span style="color:var(--muted);font-size:10px">${z.name}</span><span style="color:${z.color};font-family:var(--mono);font-size:10px;font-weight:600">${z.count}</span></div><div class="zone-bar"><div class="zone-fill" style="width:${pct}%;background:${z.color}"></div></div></div>`;
+});
+
+// Alerts screen
+function filterAl(sev,btn){
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const list=document.getElementById('alerts-list');list.innerHTML='';
+  const data=sev==='all'?ALERTS:ALERTS.filter(a=>a.sev===sev);
+  const bc={high:'var(--accent)',medium:'var(--yellow)',low:'var(--green)'};
+  data.forEach(a=>{
+    const d=document.createElement('div');d.className='alert-card';d.onclick=()=>openModal();
+    d.innerHTML=`<div class="alert-sev-bar" style="background:${bc[a.sev]};align-self:stretch"></div><div class="alert-card-body"><div class="alert-card-title">${a.msg}</div><div class="alert-card-meta"><span>${a.loc}</span><span>${a.cam}</span><span>${a.persons} persons</span><span>Score: ${a.score}</span></div></div><div class="alert-card-right"><span class="sev-tag ${a.sev}">${a.sev.toUpperCase()}</span><div style="display:flex;gap:4px"><button class="btn-xs" onclick="event.stopPropagation()">View</button><button class="btn-xs danger" onclick="openModal();event.stopPropagation()">Dispatch</button></div><span style="font-size:9px;color:var(--muted);font-family:var(--mono)">${a.time}</span></div>`;
+    list.appendChild(d);
+  });
+}
+filterAl('all',document.querySelector('.filter-btn.active'));
+
+// Analytics
+function renderAnalytics(){
+  // Bar chart
+  const hours=['08','09','10','11','12','13','14'];
+  const vals=[45,72,98,134,178,156,247];
+  const bc=document.getElementById('bar-chart');bc.innerHTML='';
+  const mx=Math.max(...vals);
+  hours.forEach((h,i)=>{
+    const col=document.createElement('div');col.className='bar-col';
+    const num=document.createElement('div');num.className='bar-num';num.textContent=vals[i];
+    const bar=document.createElement('div');bar.className='bar-fill';
+    bar.style.height=(vals[i]/mx*88)+'%';bar.style.background=i===6?'var(--accent)':'var(--cyan)';
+    bar.style.width='100%';bar.style.minHeight='3px';
+    const lbl=document.createElement('div');lbl.className='bar-lbl';lbl.textContent=h;
+    col.appendChild(num);col.appendChild(bar);col.appendChild(lbl);bc.appendChild(col);
+  });
+
+  // Pie
+  const pData=[{l:'Overcrowding',v:38,c:'#E63946'},{l:'Motion spike',v:28,c:'#F4D03F'},{l:'Violence',v:14,c:'#E67E22'},{l:'Anomaly',v:20,c:'#00B4D8'}];
+  const pCanvas=document.getElementById('pie-c');const pctx=pCanvas.getContext('2d');
+  let st=0;const tot=pData.reduce((s,d)=>s+d.v,0);
+  pData.forEach(d=>{const ang=(d.v/tot)*Math.PI*2;pctx.beginPath();pctx.moveTo(50,50);pctx.arc(50,50,45,st,st+ang);pctx.fillStyle=d.c;pctx.fill();st+=ang;});
+  const pl=document.getElementById('pie-legend');pl.innerHTML='';
+  pData.forEach(d=>{pl.innerHTML+=`<div class="pie-legend-item"><div class="pie-dot" style="background:${d.c}"></div><span style="color:var(--muted)">${d.l}</span><span style="margin-left:8px;font-family:var(--mono);font-size:10px">${d.v}%</span></div>`;});
+
+  // Line SVG
+  const pts=[55,48,62,71,58,87,94,112,108,134,156,178,187,172,165];
+  const sv=document.getElementById('line-svg');
+  const pw=300,ph=70,mn=Math.min(...pts),mx2=Math.max(...pts);
+  const coords=pts.map((v,i)=>({x:i/(pts.length-1)*pw,y:ph-(v-mn)/(mx2-mn)*ph+4}));
+  const path=coords.map((p,i)=>(i===0?'M':'L')+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
+  const fill=path+` L${pw},${ph+4} L0,${ph+4} Z`;
+  sv.innerHTML=`<defs><linearGradient id="lg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E63946" stop-opacity="0.28"/><stop offset="1" stop-color="#E63946" stop-opacity="0"/></linearGradient></defs><path d="${fill}" fill="url(#lg1)"/><path d="${path}" fill="none" stroke="#E63946" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+  // Cam perf
+  const cp=document.getElementById('cam-perf');cp.innerHTML='';
+  CAMS.forEach(cam=>{
+    const acc=88+Math.floor(((cam.id.charCodeAt(4)+7)%10));
+    cp.innerHTML+=`<div class="cam-perf-row"><span style="color:var(--muted)">${cam.id} — ${cam.name}</span><span style="color:var(--cyan);font-family:var(--mono)">${acc}%</span></div><div class="cam-perf-bar"><div class="cam-perf-fill" style="width:${acc}%"></div></div>`;
+  });
+}
+
+// Heatmap
+function renderHeatmap(){
+  const canvas=document.getElementById('heatmap-c');
+  const ctx=canvas.getContext('2d');
+  const w=800,h=340;
+  ctx.fillStyle='#0a0f1e';ctx.fillRect(0,0,w,h);
+
+  const zoneData=[
+    {x:10,y:10,w:155,h:320,name:'Zone A',sub:'Main Entry',density:1.12,persons:112},
+    {x:175,y:10,w:175,h:155,name:'Zone B',sub:'Gate 3',density:1.87,persons:187},
+    {x:175,y:175,w:175,h:155,name:'Zone E',sub:'Ticket Hall',density:0.68,persons:68},
+    {x:360,y:10,w:215,h:320,name:'Zone C',sub:'Concourse',density:0.44,persons:44},
+    {x:585,y:10,w:205,h:320,name:'Zone D',sub:'Exit Corridor',density:0.31,persons:31},
+  ];
+
+  function densityColor(d){
+    if(d<0.4)return[0,180,216];
+    if(d<0.7)return[46,204,113];
+    if(d<1.0)return[244,208,63];
+    if(d<1.5)return[230,126,34];
+    return[230,57,70];
+  }
+
+  zoneData.forEach(z=>{
+    const [r,g,b]=densityColor(z.density);
+    const cx=z.x+z.w/2,cy=z.y+z.h/2;
+    const gr=ctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(z.w,z.h)*0.65);
+    const alpha=Math.min(0.25+z.density*0.28,0.72);
+    gr.addColorStop(0,`rgba(${r},${g},${b},${alpha})`);
+    gr.addColorStop(1,`rgba(${r},${g},${b},0.04)`);
+    ctx.fillStyle=gr;ctx.fillRect(z.x,z.y,z.w,z.h);
+    ctx.strokeStyle=`rgba(${r},${g},${b},0.5)`;ctx.lineWidth=1.2;ctx.strokeRect(z.x,z.y,z.w,z.h);
+    ctx.fillStyle='rgba(255,255,255,0.9)';ctx.font='bold 12px Space Grotesk,sans-serif';ctx.textAlign='center';
+    ctx.fillText(z.name,cx,cy-18);
+    ctx.font='10px Space Grotesk,sans-serif';ctx.fillStyle='rgba(255,255,255,0.6)';
+    ctx.fillText(z.sub,cx,cy-4);
+    ctx.font='bold 15px JetBrains Mono,monospace';ctx.fillStyle=`rgb(${r},${g},${b})`;
+    ctx.fillText(z.persons+' persons',cx,cy+16);
+  });
+
+  // Outer border
+  ctx.strokeStyle='rgba(29,53,87,0.8)';ctx.lineWidth=2;ctx.strokeRect(10,10,780,320);
+
+  // Zone cards
+  const zc=document.getElementById('zone-cards');zc.innerHTML='';
+  const statusLabels=['Warning','CRITICAL','Normal','Safe','Safe'];
+  const statusColors=['#F4D03F','#E63946','#2ECC71','#2ECC71','#2ECC71'];
+  zoneData.forEach((z,i)=>{
+    const [r,g,b]=densityColor(z.density);
+    zc.innerHTML+=`<div class="zone-card" style="border-left-color:${statusColors[i]}"><div class="zone-card-name">${z.name} — ${z.sub}</div><div class="zone-card-val" style="color:${statusColors[i]}">${z.persons}</div><div class="zone-card-status" style="color:${statusColors[i]}">${statusLabels[i]}</div></div>`;
+  });
+}
+
+// Settings cam list
+function renderCamSettings(){
+  const cs=document.getElementById('cam-settings');cs.innerHTML='';
+  CAMS.forEach(cam=>{
+    cs.innerHTML+=`<div class="cam-setting-row"><div><div style="font-size:12px;font-weight:600">${cam.id}</div><div style="font-size:10px;color:var(--muted)">${cam.name}</div></div><div style="display:flex;align-items:center;gap:8px"><span class="online-pill">ONLINE</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div></div>`;
+  });
+}
+
+// Live counter
+setInterval(()=>{
+  const el=document.getElementById('s-persons');
+  if(el){const v=parseInt(el.textContent)+Math.floor(Math.random()*5)-2;el.textContent=Math.max(230,Math.min(280,v));}
+},2800);
+</script>
+</body>
+</html>
